@@ -56,8 +56,6 @@ var connectors = (function($) {
     'initialize': function() {
       var self = this;
       self.parent.initialize.apply(self, arguments);
-      self.errors = ko.observableArray();
-      self.warnings = ko.observableArray();
       self.selected = ko.observable();
     }
   });

@@ -46,15 +46,10 @@ var connections = (function($) {
     'initialize': function() {
       var self = this;
       self.parent.initialize.apply(self, arguments);
-      self.errors = ko.observableArray();
-      self.warnings = ko.observableArray();
       self.selected = ko.observable();
       self.persisted = ko.computed(function() {
         return self.id() > -1;
       });
-    },
-    'handle200Messages': function(data) {
-      handle_200_messages(this, data);
     }
   });
 

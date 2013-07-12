@@ -66,8 +66,6 @@ var jobs = (function($) {
           return 0;
         }
       });
-      self.errors = ko.observableArray();
-      self.warnings = ko.observableArray();
       self.selected = ko.observable();
       self.submission = ko.computed({
         owner: self,
@@ -133,7 +131,6 @@ var jobs = (function($) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('stop_fail.job', [self, options, data]);
             break;
           }
@@ -154,16 +151,12 @@ var jobs = (function($) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('get_status_fail.job', [self, options, data]);
             break;
           }
         }
       }, options);
       self.request('/sqoop/api/jobs/' + self.id() + '/status', options);
-    },
-    'handle200Messages': function(data) {
-      handle_200_messages(this, data);
     }
   });
 

@@ -99,7 +99,6 @@ var koify = (function($, undefined) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('load_fail.'  + self.identifier, [self, options, data]);
             break;
           }
@@ -124,7 +123,6 @@ var koify = (function($, undefined) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('save_fail.' + self.identifier, [self, options, data]);
             break;
           }
@@ -148,7 +146,6 @@ var koify = (function($, undefined) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('clone_fail.' + self.identifier, [self, options, data]);
             break;
           }
@@ -172,7 +169,6 @@ var koify = (function($, undefined) {
             break;
             default:
             case 1:
-              self.handle200Messages(data);
               $(document).trigger('delete_fail.' + self.identifier, [self, options, data]);
             break;
           }
@@ -205,9 +201,7 @@ var koify = (function($, undefined) {
     deleteUrl: function() {
       var self = this;
       return self.base_url +  self.id() + '/delete';
-    },
-    handle200Messages: function(data) {},
-    handleErrorMessages: function(data) {}
+    }
   });
 
 

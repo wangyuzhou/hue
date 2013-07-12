@@ -303,7 +303,10 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
 </script>
 
 <script type="text/html" id="framework-enum">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('framework', name())"></label>
   <div class="controls">
     <select data-bind="'options': values,
@@ -313,12 +316,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                          'name': name,
                          'title': $root.help('framework', name())
                         }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="framework-map">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('framework', name()),
                                           attr: {
                                             'title': $root.help('framework', name())
@@ -329,12 +345,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('framework', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="framework-string">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('framework', name()),
                                           attr: {
                                             'title': $root.help('framework', name())
@@ -346,12 +375,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('framework', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="framework-integer">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('framework', name()),
                                           attr: {
                                             'title': $root.help('framework', name())
@@ -362,12 +404,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'type': (sensitive() ? 'password' : 'text'), 'name': name,
                         'title': $root.help('framework', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="connector-enum">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('connector', name()),
                                           attr: {
                                             'title': $root.help('connector', name())
@@ -380,12 +435,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('connector', name())
                        }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="connector-map">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('connector', name()),
                                           attr: {
                                             'title': $root.help('connector', name())
@@ -397,12 +465,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('connector', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="connector-string">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('connector', name()),
                                           attr: {
                                             'title': $root.help('connector', name())
@@ -414,12 +495,25 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('connector', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
 
 <script type="text/html" id="connector-integer">
-<div class="control-group">
+<div data-bind="css: {
+                  warning: name() in $root.warnings(),
+                  error: name() in $root.errors()
+                }" class="control-group">
   <label class="control-label" data-bind="text: $root.label('connector', name()),
                                           attr: {
                                             'title': $root.help('connector', name())
@@ -431,6 +525,16 @@ ${ commonheader(None, "sqoop", user, "60px") | n,unicode }
                         'name': name,
                         'title': $root.help('connector', name())
                       }" rel="tooltip">
+    <!-- ko if: name() in $root.errors() -->
+      <!-- ko foreach: $root.errors()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
+    <!-- ko if: name() in $root.warnings() -->
+      <!-- ko foreach: $root.warnings()[name()]  -->
+        <span data-bind="text: message" class="help-inline"></span>
+      <!-- /ko -->
+    <!-- /ko -->
   </div>
 </div>
 </script>
@@ -499,46 +603,81 @@ viewModel.job.subscribe(function(job) {
 ko.applyBindings(viewModel, $('#jobs')[0]);
 
 //// Events
+function error_popups(e, node, options, data) {
+  var errors = data.errors;
+  viewModel.errors({});
+  viewModel.warnings({});
+  switch(data.status) {
+    case 1:
+    $.each(errors, function(component, err) {
+      $.jHueNotify.error(err);
+    });
+    break;
+    case 100:
+    $.each(errors, function(component, dict) {
+      $.each(dict['messages'], function(resource, message_dict) {
+        var el = $('*[name="' + resource + '"]');
+        if (el.length > 0) {
+          var err_node = ko.dataFor(el[0]);
+          switch(message_dict.status) {
+            case 'ACCEPTABLE':
+            if (!(resource in viewModel.errors())) {
+              viewModel.warnings()[resource] = [];
+            }
+            viewModel.warnings()[resource].push(message_dict);
+            err_node.name.valueHasMutated();
+            break;
+
+            default:
+            case 'UNACCEPTABLE':
+            if (!(resource in viewModel.errors())) {
+              viewModel.errors()[resource] = [];
+            }
+            viewModel.errors()[resource].push(message_dict);
+            err_node.name.valueHasMutated();
+            break;
+          }
+        }
+      });
+    });
+    break;
+  }
+
+  // $.each(node.warnings, function(resource, warning) {
+  //   $('*[name="' + resource + '"]').addClass("warn");
+  //   $.jHueNotify.warn(warning.message);
+  // });
+
+  // $.each(node.errors, function(resource, error) {
+  //   $('*[name="' + resource + '"]').addClass("error");
+  //   $.jHueNotify.error(error.message);
+  // });
+}
+
 $(document).on('connection_error.jobs', function(e, name, options, jqXHR) {
   $('#sqoop-error .message').text("${ _('Cannot connect to sqoop server.') }");
   routie('error');
-});
-
-$(document).on('start_fail.job', function(e, job, options, message) {
-  $.jHueNotify.error("${ _('Could not start job: ') }" + message);
 });
 
 $(document).on('started.job', function(e, job, options, submission_dict) {
   $.jHueNotify.info("${ _('Started job.') }");
 });
 
+$(document).on('start_fail.job', function(e, job, options, message) {
+  $.jHueNotify.error("${ _('Could not start job: ') }" + message);
+});
+
 $(document).on('stopped.job', function(e, job, options, submission_dict) {
   $.jHueNotify.info("${ _('Stopped job.') }");
 });
 
-$(document).on('save_fail.job', function(e, node, options, data) {
-  $.each(node.errors(), function(index, error) {
-    $.jHueNotify.error(error);
-  });
+$(document).on('stop_fail.job', function(e, job, options, submission_dict) {
+  $.jHueNotify.info("${ _('Could not stop job.') }");
 });
 
-$(document).on('save_fail.connection', function(e, node, options, data) {
-  $.each(node.errors(), function(index, error) {
-    $.jHueNotify.error(error);
-  });
-});
-
-$(document).on('delete_fail.job', function(e, node, options, data) {
-  $.each(node.errors(), function(index, error) {
-    $.jHueNotify.error(error);
-  });
-});
-
-$(document).on('delete_fail.connection', function(e, node, options, data) {
-  $.each(node.errors(), function(index, error) {
-    $.jHueNotify.error(error);
-  });
-});
+$(document).on('save_fail.job', error_popups);
+$(document).on('save_fail.connection', error_popups);
+$(document).on('delete_fail.job', error_popups);
 
 $(document).on('keyup', 'input#filter', function() {
   viewModel.filter($('#filter').val());

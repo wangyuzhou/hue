@@ -38,36 +38,6 @@ function fetcher_success(name, Node, options) {
   };
 }
 
-//// Component utils
-function handle_200_messages(node, data) {
-  var errors = data.errors;
-  node.warnings.removeAll();
-  node.errors.removeAll();
-  switch(data.status) {
-    case 1:
-    $.each(errors, function(component, err) {
-      node.errors.push(err);
-    });
-    break;
-    case 100:
-    $.each(errors, function(component, dict) {
-      $.each(dict['messages'], function(resource, message_dict) {
-        switch(message_dict.status) {
-          case 'ACCEPTABLE':
-          node.warnings.push(message_dict.message);
-          break;
-
-          default:
-          case 'UNACCEPTABLE':
-          node.errors.push(message_dict.message);
-          break;
-        }
-      });
-    });
-    break;
-  }
-}
-
 //// KO utils
 ko.bindingHandlers.routie = {
   init: function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {

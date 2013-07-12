@@ -65,8 +65,6 @@ var submissions = (function($) {
       self.progressFormatted = ko.computed(function() {
         return (self.progress() * 100) + "%";
       });
-      self.errors = ko.observableArray();
-      self.warnings = ko.observableArray();
       self.selected = ko.observable();
     }
   });
