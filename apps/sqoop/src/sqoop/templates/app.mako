@@ -603,7 +603,8 @@ viewModel.job.subscribe(function(job) {
 ko.applyBindings(viewModel, $('#jobs')[0]);
 
 //// Events
-function error_popups(e, node, options, data) {
+function handle_form_errors(e, node, options, data) {
+  // Add errors and warnings to viewModel.errors and viewModel.warnings
   var errors = data.errors;
   viewModel.errors({});
   viewModel.warnings({});
@@ -642,16 +643,6 @@ function error_popups(e, node, options, data) {
     });
     break;
   }
-
-  // $.each(node.warnings, function(resource, warning) {
-  //   $('*[name="' + resource + '"]').addClass("warn");
-  //   $.jHueNotify.warn(warning.message);
-  // });
-
-  // $.each(node.errors, function(resource, error) {
-  //   $('*[name="' + resource + '"]').addClass("error");
-  //   $.jHueNotify.error(error.message);
-  // });
 }
 
 $(document).on('connection_error.jobs', function(e, name, options, jqXHR) {
@@ -675,9 +666,9 @@ $(document).on('stop_fail.job', function(e, job, options, submission_dict) {
   $.jHueNotify.info("${ _('Could not stop job.') }");
 });
 
-$(document).on('save_fail.job', error_popups);
-$(document).on('save_fail.connection', error_popups);
-$(document).on('delete_fail.job', error_popups);
+$(document).on('save_fail.job', handle_form_errors);
+$(document).on('save_fail.connection', handle_form_errors);
+$(document).on('delete_fail.job', handle_form_errors);
 
 $(document).on('keyup', 'input#filter', function() {
   viewModel.filter($('#filter').val());
