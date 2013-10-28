@@ -184,7 +184,7 @@ class Submission(object):
     # Automatic setup of the required directories if needed
     create_directories(self.fs)
 
-    if self.user != self.job.owner:      
+    if self.user != self.job.owner:
       path = Hdfs.join(REMOTE_DEPLOYMENT_DIR.get(), '_%s_-oozie-%s-%s' % (self.user.username, self.job.id, time.time()))
       self.fs.copy_remote_dir(self.job.deployment_dir, path, owner=self.user, dir_mode=0711)
     else:
