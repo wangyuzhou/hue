@@ -28,7 +28,7 @@ from beeswax import hive_site
 from beeswax.conf import HIVE_SERVER_HOST, HIVE_SERVER_PORT,\
   BROWSE_PARTITIONED_TABLE_LIMIT
 from beeswax.design import hql_query
-from beeswax.models import QueryHistory, HIVE_SERVER2, BEESWAX
+from beeswax.models import QueryHistory, HIVE_SERVER2, BEESWAX, MYSQL
 
 from filebrowser.views import location_to_url
 from desktop.lib.django_util import format_preserving_redirect
@@ -38,14 +38,20 @@ from desktop.lib.exceptions_renderable import PopupException
 LOG = logging.getLogger(__name__)
 
 
-def get(user, query_server=None):
-  # Avoid circular dependency
-  from beeswax.server.hive_server2_lib import HiveServerClientCompatible, HiveServerClient
+def get(user, query_server):
+  if query_server['server_name'] in ('impala', 'beeswax'):
+    # Avoid circular dependency
+    from beeswax.server.hive_server2_lib import HiveServerClientCompatible, HiveServerClient
 
-  if query_server is None:
-    query_server = get_query_server_config()
+    return HS2Dbms(HiveServerClientCompatible(HiveServerClient(query_server, user)), QueryHistory.SERVER_TYPE[1][0])
+  elif query_server['server_name'] == 'mysql':
+    from beeswax.server.mysql_lib import MySQLClient
 
-  return Dbms(HiveServerClientCompatible(HiveServerClient(query_server, user)), QueryHistory.SERVER_TYPE[1][0])
+    return RDbms(MySQLClient(query_server, user), QueryHistory.SERVER_TYPE[2][0])
+  elif query_server['server_name'] == 'postgresql':
+    from beeswax.server.postgresql_lib import PostgreSQLClient
+
+    return RDbms(PostgreSQLClient(query_server, user), QueryHistory.SERVER_TYPE[2][0])
 
 
 def get_query_server_config(name='beeswax'):
@@ -60,6 +66,20 @@ def get_query_server_config(name='beeswax'):
         'principal': IMPALA_PRINCIPAL.get(),
         'impersonation_enabled': IMPERSONATION_ENABLED.get()
     }
+  elif name == 'rdbms':
+    from rdbms.conf import RDBMS
+
+    query_server = {}
+    for name in RDBMS:
+      query_server = {
+        'server_name': RDBMS[name].ENGINE.get().split('.')[-1],
+        'server_host': RDBMS[name].HOST.get(),
+        'server_port': RDBMS[name].PORT.get(),
+        'username': RDBMS[name].USER.get(),
+        'password': RDBMS[name].PASSWORD.get(),
+        'password': RDBMS[name].PASSWORD.get(),
+        'alias': name
+      }
   else:
     kerberos_principal = hive_site.get_hiveserver2_kerberos_principal(HIVE_SERVER_HOST.get())
 
@@ -69,7 +89,8 @@ def get_query_server_config(name='beeswax'):
         'server_port': HIVE_SERVER_PORT.get(),
         'principal': kerberos_principal
     }
-    LOG.debug("Query Server: %s" % query_server)
+
+  LOG.debug("Query Server: %s" % query_server)
 
   return query_server
 
@@ -86,12 +107,13 @@ class NoSuchObjectException: pass
 
 
 class Dbms:
-  """SQL"""
-
   def __init__(self, client, server_type):
     self.client = client
     self.server_type = server_type
 
+
+class HS2Dbms(Dbms):
+  """SQL"""
 
   def get_table(self, database, table_name):
     # DB name not supported in SHOW PARTITIONS required in Table
@@ -314,14 +336,15 @@ class Dbms:
 
   def execute_and_wait(self, query, timeout_sec=30.0):
     """
-    Run query and check status until it finishes or timeouts.
+    Run query
+
+    Check status until it finishes or timeouts.
     """
     SLEEP_INTERVAL = 0.5
 
     handle = self.client.query(query)
     curr = time.time()
     end = curr + timeout_sec
-
     while curr <= end:
       state = self.client.get_state(handle)
       if state not in (QueryHistory.STATE.running, QueryHistory.STATE.submitted):
@@ -443,6 +466,49 @@ class Dbms:
     return ""
 
 
+class RDbms(Dbms):
+  def get_table(self, database, table_name):
+    return self.client.get_table(database, table_name)
+
+  def get_databases(self):
+    return self.client.get_databases()
+
+  def execute_query(self, query, design):
+    sql_query = query.hql_query
+    query_history = QueryHistory.build(
+      owner=self.client.user,
+      query=sql_query,
+      server_host='%(server_host)s' % self.client.query_server,
+      server_port='%(server_port)d' % self.client.query_server,
+      server_name='%(server_name)s' % self.client.query_server,
+      server_type=self.server_type,
+      last_state=QueryHistory.STATE.available.index,
+      design=design,
+      notify=False,
+      query_type=query.query['type'],
+      statement_number=0
+    )
+    query_history.save()
+
+    LOG.debug("Updated QueryHistory id %s user %s statement_number: %s" % (query_history.id, self.client.user, query_history.statement_number))
+
+    return query_history
+
+  def use(self, database):
+    query = hql_query('USE %s' % database)
+    self.client.query(query)
+
+  def execute_and_wait(self, query, timeout_sec=30.0):
+    """
+    Run query
+
+    Simply run query irrespective of timeout.
+    Timeout exists to comply with interface.
+    """
+
+    return self.client.query(query)
+
+
 class Table:
   """
   Represents the metadata of a Hive Table.
@@ -479,3 +545,73 @@ def expand_exception(exc, db, handle=None):
   else:
     error_message = force_unicode(exc.message, strings_only=True, errors='replace')
   return error_message, log
+
+
+class BeeswaxClientInterface:
+  def query(self, query, statement=0): raise NotImplementedError()
+
+
+  def get_state(self, handle): raise NotImplementedError()
+
+
+  def explain(self, query): raise NotImplementedError()
+
+
+  def fetch(self, handle, start_over=False, max_rows=None): raise NotImplementedError()
+
+
+  def cancel_operation(self, handle): raise NotImplementedError()
+
+
+  def close(self, handle): raise NotImplementedError()
+
+
+  def close_operation(self, handle): raise NotImplementedError()
+
+
+  def dump_config(self): raise NotImplementedError()
+
+
+  def get_log(self, handle): raise NotImplementedError()
+
+
+  def get_databases(self): raise NotImplementedError()
+
+
+  def get_tables(self, database, table_names): raise NotImplementedError()
+
+
+  def get_table(self, database, table_name): raise NotImplementedError()
+
+
+  def get_columns(self, database, table): raise NotImplementedError()
+
+
+  def get_default_configuration(self, *args, **kwargs): raise NotImplementedError()
+
+
+  def get_results_metadata(self, handle): raise NotImplementedError()
+
+
+  def create_database(self, name, description): raise NotImplementedError()
+
+
+  def get_database(self, *args, **kwargs): raise NotImplementedError()
+
+
+  def alter_table(self, dbname, tbl_name, new_tbl): raise NotImplementedError()
+
+
+  def open_session(self, user): raise NotImplementedError()
+
+
+  def add_partition(self, new_part): raise NotImplementedError()
+
+
+  def get_partition(self, *args, **kwargs): raise NotImplementedError()
+
+
+  def get_partitions(self, database, table_name, max_parts): raise NotImplementedError()
+
+
+  def alter_partition(self, db_name, tbl_name, new_part): raise NotImplementedError()

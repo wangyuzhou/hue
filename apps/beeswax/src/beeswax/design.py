@@ -52,7 +52,6 @@ def hql_query(hql, database='default'):
   return hql_design
 
 
-
 class HQLdesign(object):
   """
   Represents an HQL design, with methods to perform (de)serialization.
@@ -165,6 +164,9 @@ class HQLdesign(object):
   def statements(self):
     hql_query = _strip_trailing_semicolon(self.hql_query)
     return [_strip_trailing_semicolon(statement.strip()) for statement in split_statements(hql_query)]
+
+
+class SQLdesign(HQLdesign): pass
 
 
 def split_statements(hql):

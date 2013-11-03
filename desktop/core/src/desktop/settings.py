@@ -23,10 +23,12 @@
 import logging
 import os
 import sys
+import pkg_resources
+
 import desktop.conf
 import desktop.log
 from desktop.lib.paths import get_desktop_root
-import pkg_resources
+
 
 HUE_DESKTOP_VERSION = pkg_resources.get_distribution("desktop").version or "Unknown"
 NICE_NAME = "Hue"
@@ -269,6 +271,22 @@ else:
 DATABASES = {
   'default': default_db
 }
+
+try:
+  import rdbms.conf
+  for name in rdbms.conf.RDBMS.get():
+    if name != 'default':
+      DATABASES[name] = {
+        "ENGINE" : rdbms.conf.RDBMS[name].ENGINE.get(),
+        "USER" : rdbms.conf.RDBMS[name].USER.get(),
+        "PASSWORD" : rdbms.conf.RDBMS[name].PASSWORD.get(),
+        "HOST" : rdbms.conf.RDBMS[name].HOST.get(),
+        "PORT" : str(rdbms.conf.RDBMS[name].PORT.get()),
+        "OPTIONS": rdbms.conf.RDBMS[name].OPTIONS.get(),
+      }
+except ImportError:
+  pass
+
 
 # Configure sessions
 SESSION_COOKIE_AGE = desktop.conf.SESSION.TTL.get()

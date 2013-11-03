@@ -35,7 +35,7 @@ from beeswax import conf
 from beeswax import hive_site
 from beeswax.models import Session, HiveServerQueryHandle, HiveServerQueryHistory
 from beeswax.server.dbms import Table, NoSuchObjectException, DataTable,\
-  QueryServerException
+                                QueryServerException, BeeswaxClientInterface
 
 
 LOG = logging.getLogger(__name__)
@@ -612,7 +612,7 @@ class ResultMetaCompatible:
     self.in_tablename = True
 
 
-class HiveServerClientCompatible:
+class HiveServerClientCompatible(BeeswaxClientInterface):
   """Same API as Beeswax"""
 
   def __init__(self, client):

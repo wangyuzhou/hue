@@ -43,7 +43,7 @@ import beeswax.management.commands.beeswax_install_examples
 
 from beeswax import common, data_export, models
 from beeswax.forms import QueryForm
-from beeswax.design import HQLdesign
+from beeswax.design import HQLdesign, SQLdesign
 from beeswax.models import SavedQuery, make_query_context, QueryHistory
 from beeswax.server import dbms
 from beeswax.server.dbms import expand_exception, get_query_server_config, QueryServerException
@@ -61,9 +61,9 @@ def index(request):
 Design views
 """
 
-def save_design(request, form, type, design, explicit_save):
+def save_design(request, form, type_, design, explicit_save):
   """
-  save_design(request, form, type, design, explicit_save) -> SavedQuery
+  save_design(request, form, type_, design, explicit_save) -> SavedQuery
 
   A helper method to save the design:
     * If ``explicit_save``, then we save the data in the current design.
@@ -77,12 +77,14 @@ def save_design(request, form, type, design, explicit_save):
   """
   assert form.saveform.is_valid()
 
-  if type == models.HQL:
+  if type_ == models.HQL:
     design_cls = beeswax.design.HQLdesign
-  elif type == models.IMPALA:
+  elif type_ == models.IMPALA:
     design_cls = beeswax.design.HQLdesign
+  elif type_ == models.RDBMS:
+    design_cls = beeswax.design.SQLdesign
   else:
-    raise ValueError(_('Invalid design type %(type)s') % {'type': type})
+    raise ValueError(_('Invalid design type %(type)s') % {'type': type_})
 
   old_design = design
   design_obj = design_cls(form)
@@ -105,7 +107,7 @@ def save_design(request, form, type, design, explicit_save):
       design.name = models.SavedQuery.DEFAULT_NEW_DESIGN_NAME
     design.is_auto = True
 
-  design.type = type
+  design.type = type_
   design.data = new_data
 
   design.save()
@@ -384,7 +386,7 @@ def execute_query(request, design_id=None):
 
   query_server = get_query_server_config(app_name)
   db = dbms.get(request.user, query_server)
-  databases = _get_db_choices(request)
+  databases = get_db_choices(request)
 
   if request.method == 'POST':
     form.bind(request.POST)
@@ -514,7 +516,7 @@ def watch_query(request, id):
 
   # Keep waiting
   # - Translate context into something more meaningful (type, data)
-  query_context = _parse_query_context(context_param)
+  query_context = parse_query_context(context_param)
 
   return render('watch_wait.mako', request, {
                 'query': query_history,
@@ -627,7 +629,7 @@ def view_results(request, id, first_row=0):
 
   handle, state = _get_query_handle_and_state(query_history)
   context_param = request.GET.get('context', '')
-  query_context = _parse_query_context(context_param)
+  query_context = parse_query_context(context_param)
 
   # To remove when Impala has start_over support
   download  = request.GET.get('download', '')
@@ -716,6 +718,123 @@ def view_results(request, id, first_row=0):
     return HttpResponse(json.dumps(context), mimetype="application/json")
 
   return render('watch_results.mako', request, context)
+
+
+def view_wait_results(request, id, first_row=0):
+  """
+  Returns the view for the results of the QueryHistory with the given id.
+
+  The query results MUST be ready.
+  To display query results, one should always go through the watch_query view.
+  If the result set has has_result_set=False, display an empty result.
+
+  If ``first_row`` is 0, restarts (if necessary) the query read.  Otherwise, just
+  spits out a warning if first_row doesn't match the servers conception.
+  Multiple readers will produce a confusing interaction here, and that's known.
+
+  It understands the ``context`` GET parameter. (See watch_query().)
+  """
+  first_row = long(first_row)
+  start_over = (first_row == 0)
+  results = type('Result', (object,), {
+                'rows': 0,
+                'columns': [],
+                'has_more': False,
+                'start_row': 0,
+            })
+  data = []
+  fetch_error = False
+  error_message = ''
+  log = ''
+  app_name = get_app_name(request)
+
+  query_history = authorized_get_history(request, id, must_exist=True)
+  query_server = query_history.get_query_server_config()
+  db = dbms.get(request.user, query_server)
+
+  context_param = request.GET.get('context', '')
+  query_context = parse_query_context(context_param)
+
+  # To remove when Impala has start_over support
+  download  = request.GET.get('download', '')
+
+  # Retrieve query results or use empty result if no result set
+  try:
+    if query_server['server_name'] == 'impala' and not handle.has_result_set:
+      downloadable = False
+    elif not download:
+      results = db.fetch(handle, start_over, 100)
+      data = list(results.rows()) # Materialize results
+
+      # We display the "Download" button only when we know that there are results:
+      downloadable = first_row > 0 or data
+      log = db.get_log(handle)
+    else:
+      downloadable = True
+
+  except Exception, ex:
+    fetch_error = True
+    error_message, log = expand_exception(ex, db, handle)
+
+  # Handle errors
+  error = fetch_error or results is None or expired
+
+  context = {
+    'error': error,
+    'error_message': error_message,
+    'query': query_history,
+    'results': data,
+    'expected_first_row': first_row,
+    'log': log,
+    'hadoop_jobs': app_name != 'impala' and _parse_out_hadoop_jobs(log),
+    'query_context': query_context,
+    'can_save': False,
+    'context_param': context_param,
+    'expired': expired,
+    'app_name': app_name,
+    'download': download,
+    'next_json_set': None
+  }
+
+  if not error:
+    download_urls = {}
+    if downloadable:
+      for format in common.DL_FORMATS:
+        download_urls[format] = reverse(app_name + ':download', kwargs=dict(id=str(id), format=format))
+
+    save_form = beeswax.forms.SaveResultsForm()
+    results.start_row = first_row
+
+    context.update({
+      'results': data,
+      'has_more': results.has_more,
+      'next_row': results.start_row + len(data),
+      'start_row': results.start_row,
+      'expected_first_row': first_row,
+      'columns': results.columns,
+      'download_urls': download_urls,
+      'save_form': save_form,
+      'can_save': query_history.owner == request.user and not download,
+      'next_json_set': reverse(get_app_name(request) + ':view_results', kwargs={
+        'id': str(id),
+        'first_row': results.start_row + len(data)
+      }) + ('?context=' + context_param or '') + '&format=json'
+    })
+
+  if request.GET.get('format') == 'json':
+    context = {
+      'results': data,
+      'has_more': results.has_more,
+      'next_row': results.start_row + len(data),
+      'start_row': results.start_row,
+      'next_json_set': reverse(get_app_name(request) + ':view_results', kwargs={
+        'id': str(id),
+        'first_row': results.start_row + len(data)
+      }) + ('?context=' + context_param or '') + '&format=json'
+    }
+    return HttpResponse(json.dumps(context), mimetype="application/json")
+
+  return render('wait_results.mako', request, context)
 
 
 def save_results(request, id):
@@ -1024,7 +1143,7 @@ def _run_parameterized_query(request, design_id, explain):
   params = design_obj.get_query_dict()
   params.update(request.POST)
 
-  databases = _get_db_choices(request)
+  databases = get_db_choices(request)
   query_form.bind(params)
   query_form.query.fields['database'].choices = databases # Could not do it in the form
 
@@ -1067,7 +1186,7 @@ def _run_parameterized_query(request, design_id, explain):
 
 
 def execute_directly(request, query, query_server=None, design=None, tablename=None,
-                     on_success_url=None, on_success_params=None, **kwargs):
+                           on_success_url=None, on_success_params=None, **kwargs):
   """
   execute_directly(request, query_msg, tablename, design) -> HTTP response for execution
 
@@ -1227,9 +1346,9 @@ def _get_query_handle_and_state(query_history):
   return (handle, state)
 
 
-def _parse_query_context(context):
+def parse_query_context(context):
   """
-  _parse_query_context(context) -> ('table', <table_name>) -or- ('design', <design_obj>)
+  parse_query_context(context) -> ('table', <table_name>) -or- ('design', <design_obj>)
   """
   if not context:
     return None
@@ -1351,7 +1470,6 @@ def _list_query_history(user, querydict, page_size, prefix=""):
   if pagenum < 1:
     pagenum = 1
   db_queryset = db_queryset[ page_size * (pagenum - 1) : page_size * pagenum ]
-
   paginator = Paginator(db_queryset, page_size, total=total_count)
   page = paginator.page(pagenum)
 
@@ -1387,7 +1505,7 @@ def _update_query_state(query_history):
     query_history.save_state(state_enum)
   return True
 
-def _get_db_choices(request):
+def get_db_choices(request):
   app_name = get_app_name(request)
   query_server = get_query_server_config(app_name)
   db = dbms.get(request.user, query_server)
