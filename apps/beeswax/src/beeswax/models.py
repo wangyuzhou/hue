@@ -31,7 +31,6 @@ from enum import Enum
 from desktop.lib.exceptions_renderable import PopupException
 from desktop.models import Document
 
-from beeswax.design import HQLdesign, hql_query
 from TCLIService.ttypes import TSessionHandle, THandleIdentifier,\
   TOperationState, TOperationHandle, TOperationType
 
@@ -43,7 +42,9 @@ QUERY_SUBMISSION_TIMEOUT = datetime.timedelta(0, 60 * 60)               # 1 hour
 # Constants for DB fields, hue ini
 BEESWAX = 'beeswax'
 HIVE_SERVER2 = 'hiveserver2'
-QUERY_TYPES = (HQL, IMPALA) = range(2)
+MYSQL = 'mysql'
+POSTGRESQL = 'postgresql'
+QUERY_TYPES = (HQL, IMPALA, RDBMS) = range(3)
 
 
 class QueryHistory(models.Model):
@@ -51,7 +52,7 @@ class QueryHistory(models.Model):
   Holds metadata about all queries that have been executed.
   """
   STATE = Enum('submitted', 'running', 'available', 'failed', 'expired')
-  SERVER_TYPE = ((BEESWAX, 'Beeswax'), (HIVE_SERVER2, 'Hive Server 2'))
+  SERVER_TYPE = ((BEESWAX, 'Beeswax'), (HIVE_SERVER2, 'Hive Server 2'), (MYSQL, 'MySQL'), (POSTGRESQL, 'PostgreSQL'))
 
   owner = models.ForeignKey(User, db_index=True)
   query = models.TextField()
@@ -95,6 +96,8 @@ class QueryHistory(models.Model):
   def get_type_name(query_type):
     if query_type == IMPALA:
       return 'impala'
+    elif query_type == RDBMS:
+      return 'rdbms'
     else:
       return 'beeswax'
 
@@ -193,6 +196,13 @@ class HiveServerQueryHistory(QueryHistory):
     self.save()
 
 
+class MySQLQueryHistory(QueryHistory):
+  node_type = MYSQL
+
+  class Meta:
+    proxy = True
+
+
 class SavedQuery(models.Model):
   """
   Stores the query that people have save or submitted.
@@ -203,7 +213,7 @@ class SavedQuery(models.Model):
   DEFAULT_NEW_DESIGN_NAME = _('My saved query')
   AUTO_DESIGN_SUFFIX = _(' (new)')
   TYPES = QUERY_TYPES
-  TYPES_MAPPING = {'beeswax': HQL, 'hql': HQL, 'impala': IMPALA}
+  TYPES_MAPPING = {'beeswax': HQL, 'hql': HQL, 'impala': IMPALA, 'rdbms': RDBMS}
 
   type = models.IntegerField(null=False)
   owner = models.ForeignKey(User, db_index=True)
@@ -224,6 +234,8 @@ class SavedQuery(models.Model):
     ordering = ['-mtime']
 
   def get_design(self):
+    from beeswax.design import HQLdesign
+
     return HQLdesign.loads(self.data)
 
   def clone(self):
@@ -236,12 +248,12 @@ class SavedQuery(models.Model):
     return design
 
   @classmethod
-  def create_empty(cls, app_name, owner):
+  def create_empty(cls, app_name, owner, data):
     query_type = SavedQuery.TYPES_MAPPING[app_name]
     design = SavedQuery(owner=owner, type=query_type)
     design.name = SavedQuery.DEFAULT_NEW_DESIGN_NAME
     design.desc = ''
-    design.data = hql_query('').dumps()
+    design.data = data
     design.is_auto = True
     design.save()
     return design
