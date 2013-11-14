@@ -782,7 +782,7 @@ def test_fs_configuration(fs_config):
             _('Failed to create temporary file "%s"') % tmpname)]
 
   # Check superuser has super power
-  try:  # Finally: delete tmpname
+  try:
     try:
       fs.chown(tmpname, fs.superuser)
     except Exception, ex:
