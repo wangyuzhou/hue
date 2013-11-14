@@ -55,10 +55,12 @@ def _parse_core_site():
   global _CORE_SITE_PATH
 
   for indentifier in conf.HDFS_CLUSTERS.get():
-    _CORE_SITE_PATH = os.path.join(conf.HDFS_CLUSTERS[indentifier].HADOOP_CONF_DIR.get(), 'core-site.xml')
     try:
+      _CORE_SITE_PATH = os.path.join(conf.HDFS_CLUSTERS[indentifier].HADOOP_CONF_DIR.get(), 'core-site.xml')
       data = file(_CORE_SITE_PATH, 'r').read()
       break
+    except KeyError:
+      data = ""
     except IOError, err:
       if err.errno != errno.ENOENT:
         LOG.error('Cannot read from "%s": %s' % (_CORE_SITE_PATH, err))
@@ -75,4 +77,4 @@ def get_trash_interval():
 
   Also indicates whether trash is enabled or not.
   """
-  return get_conf().get(_CNF_TRASH_INTERVAL, None)
+  return get_conf().get(_CNF_TRASH_INTERVAL, 1000)
